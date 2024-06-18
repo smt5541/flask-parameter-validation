@@ -5,6 +5,7 @@ from flask import Blueprint, jsonify
 
 from flask_parameter_validation import ValidateParameters, Route
 from flask_parameter_validation.parameter_types.parameter import Parameter
+from flask_parameter_validation.test.testing_blueprints.dummy_decorators import dummy_decorator, dummy_async_decorator
 
 
 def get_list_blueprint(ParamType: type[Parameter], bp_name: str, http_verb: str) -> Blueprint:
@@ -18,6 +19,22 @@ def get_list_blueprint(ParamType: type[Parameter], bp_name: str, http_verb: str)
     @decorator("/req_str")
     @ValidateParameters()
     def req_str(v: List[str] = ParamType()):
+        assert type(v) is list
+        assert type(v[0]) is str
+        return jsonify({"v": v})
+    
+    @decorator("/decorator/req_str")
+    @dummy_decorator
+    @ValidateParameters()
+    def decorator_req_str(v: List[str] = ParamType()):
+        assert type(v) is list
+        assert type(v[0]) is str
+        return jsonify({"v": v})
+    
+    @decorator("/async_decorator/req_str")
+    @dummy_async_decorator
+    @ValidateParameters()
+    async def async_decorator_req_str(v: List[str] = ParamType()):
         assert type(v) is list
         assert type(v[0]) is str
         return jsonify({"v": v})
@@ -85,6 +102,30 @@ def get_list_blueprint(ParamType: type[Parameter], bp_name: str, http_verb: str)
             "opt": opt
         })
 
+    @decorator("/decorator/default")
+    @dummy_decorator
+    @ValidateParameters()
+    def decorator_default(
+            n_opt: List[str] = ParamType(default=["a", "b"]),
+            opt: Optional[List[int]] = ParamType(default=[0, 1])
+    ):
+        return jsonify({
+            "n_opt": n_opt,
+            "opt": opt
+        })
+    
+    @decorator("/async_decorator/default")
+    @dummy_async_decorator
+    @ValidateParameters()
+    async def async_decorator_default(
+            n_opt: List[str] = ParamType(default=["a", "b"]),
+            opt: Optional[List[int]] = ParamType(default=[0, 1])
+    ):
+        return jsonify({
+            "n_opt": n_opt,
+            "opt": opt
+        })
+
     def is_len_even(v):
         assert type(v) is list
         return len(v) % 2 == 0
@@ -102,6 +143,28 @@ def get_list_blueprint(ParamType: type[Parameter], bp_name: str, http_verb: str)
     @decorator("/max_list_length")
     @ValidateParameters()
     def max_list_length(v: List[str] = ParamType(max_list_length=3)):
+        return jsonify({"v": v})
+
+    json_schema = {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "required": ["user_id", "first_name", "last_name", "tags"],
+            "properties": {
+                "user_id": {"type": "integer"},
+                "first_name": {"type": "string"},
+                "last_name": {"type": "string"},
+                "tags": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                }
+            }
+        }
+    }
+
+    @decorator("/json_schema")
+    @ValidateParameters()
+    def json_schema(v: list = ParamType(json_schema=json_schema)):
         return jsonify({"v": v})
 
     return list_bp
